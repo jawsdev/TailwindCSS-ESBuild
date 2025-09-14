@@ -1,7 +1,3 @@
-Absolutely — here’s the **re-ordered README** with Git setup early, the publish hook **before** the prod build, and everything else intact. Ready to drop into your repo.
-
----
-
 # Tailwind CSS 4.1 + Tailwind Plus (esbuild) for ASP.NET Core
 
 **Works with both MVC *and* Razor Pages.**
