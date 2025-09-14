@@ -1,0 +1,21 @@
+{
+  "name": "tailwindcss-esbuild-example",
+  "version": "1.0.0",
+  "repository": "https://github.com/jawsdev/TailwindCSS-ESBuild.git",
+  "author": "John @jawjawdev",
+  "license": "MIT",
+  "scripts": {
+    "dev:css": "tailwindcss -i ./Styles/site.css -o ./wwwroot/css/site.css --watch",
+    "build:css": "tailwindcss -i ./Styles/site.css -o ./wwwroot/css/site.css --minify",
+    "dev:js": "esbuild Scripts/site.js --bundle --format=esm --target=es2018 --outfile=wwwroot/js/site.js --watch",
+    "build:js": "esbuild Scripts/site.js --bundle --minify --format=esm --target=es2018 --outfile=wwwroot/js/site.js"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.13",
+    "esbuild": "^0.25.9",
+    "tailwindcss": "^4.1.13"
+  },
+  "dependencies": {
+    "@tailwindplus/elements": "^1.0.13"
+  }
+}
