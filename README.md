@@ -197,7 +197,7 @@ Just ensure the **JS is loaded as a module** so the esbuild ESM bundle runs.
 </html>
 ```
 
-*(\`<div class="container"><div class="row"><div class="col">… yeah … no.)*
+*`<div class="container"><div class="row"><div class="col">… yeah … no.`*
 
 ---
 
