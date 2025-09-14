@@ -1,8 +1,12 @@
-# Tailwind CSS 4.1 + Tailwind Plus (with esbuild) in ASP.NET Core MVC
+Absolutely — here’s the **re-ordered README** with Git setup early, the publish hook **before** the prod build, and everything else intact. Ready to drop into your repo.
 
+---
+
+# Tailwind CSS 4.1 + Tailwind Plus (esbuild) for ASP.NET Core
+
+**Works with both MVC *and* Razor Pages.**
 Tailwind CLI builds CSS → `wwwroot/css/site.css`
 esbuild bundles JS (incl. Tailwind Plus) → `wwwroot/js/site.js`
-Static files served via `UseStaticFiles()`. Works with `dotnet watch` + CI/CD.
 
 ---
 
@@ -10,18 +14,40 @@ Static files served via `UseStaticFiles()`. Works with `dotnet watch` + CI/CD.
 
 * .NET 9 SDK
 * Node.js + Yarn (or npm if you must)
-* A new ASP.NET Core MVC project
 
 ---
 
-## 1) Create the project & remove the old defaults
+## Choose your template
 
-```bash
-dotnet new mvc -n MyProject
-cd MyProject
-```
+Pick one — the rest of the guide is the same, with a few callouts below.
 
-ASP.NET drops Bootstrap/jQuery into `wwwroot/lib`. You don’t need them:
+* **MVC**
+
+  ```bash
+  dotnet new mvc -n MyProject
+  cd MyProject
+  ```
+* **Razor Pages**
+
+  ```bash
+  dotnet new webapp -n MyProject
+  cd MyProject
+  ```
+
+### What changes between MVC vs Razor Pages?
+
+| Concern              | MVC                                                                            | Razor Pages                                                      |
+| -------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| **Services**         | `builder.Services.AddControllersWithViews();`                                  | `builder.Services.AddRazorPages();`                              |
+| **Routing**          | `app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");` | `app.MapRazorPages();`                                           |
+| **Layout path**      | `Views/Shared/_Layout.cshtml`                                                  | `Pages/Shared/_Layout.cshtml`                                    |
+| **Tailwind sources** | Keep `@source "./Views/**/*.cshtml";`                                          | Keep `@source "./Pages/**/*.cshtml";` (you can keep both safely) |
+
+---
+
+## 1) Remove the old defaults
+
+ASP.NET puts Bootstrap/jQuery in `wwwroot/lib`. You don’t need them:
 
 ```bash
 rm -r wwwroot/lib
@@ -29,11 +55,51 @@ rm -r wwwroot/lib
 
 *(Delete it already — you’re not going to need it.)*
 
-If your `.csproj` contains a huge `<ItemGroup>` removing bootstrap/jquery files from `wwwroot/lib`, delete that whole block too. It only exists because the template added those files.
+If your `.csproj` has a giant `<ItemGroup>` of `_ContentIncludedByDefault Remove="wwwroot\lib\..."`, **delete that whole block**. It only exists because those files were added.
 
 ---
 
-## 2) Initialize Yarn & install deps (and fix `package.json`)
+## 2) Initialize Git (do this now, before any builds)
+
+```bash
+git init
+dotnet new gitignore
+```
+
+Add frontend ignores too:
+
+```
+# Node
+node_modules/
+
+# Build outputs
+wwwroot/css/*
+wwwroot/js/*
+!wwwroot/css/.gitkeep
+!wwwroot/js/.gitkeep
+
+# logs
+*.log
+```
+
+First commit:
+
+```bash
+git add .
+git commit -m "Initial commit: ASP.NET + Tailwind 4.1 + esbuild + Tailwind Plus"
+```
+
+(Optional) Add remote:
+
+```bash
+git remote add origin https://github.com/yourname/MyProject.git
+git branch -M main
+git push -u origin main
+```
+
+---
+
+## 3) Initialize Yarn & install deps (and fix `package.json`)
 
 ```bash
 yarn init -y
@@ -67,13 +133,13 @@ yarn add @tailwindplus/elements
 }
 ```
 
-> Why separate CSS & JS builds? Tailwind CLI builds CSS. esbuild bundles JS. That’s the setup.
+*(Tailwind CLI builds CSS. esbuild bundles JS. That’s the setup.)*
 
 ---
 
-## 3) Inputs
+## 4) Inputs
 
-**`Styles/site.css`** (replace the default content)
+**`Styles/site.css`** *(replace the default content)*
 
 ```css
 @import "tailwindcss";
@@ -81,7 +147,7 @@ yarn add @tailwindplus/elements
 @source "./Pages/**/*.cshtml";
 ```
 
-**`Scripts/site.js`** (replace the default content)
+**`Scripts/site.js`** *(replace the default content)*
 
 ```js
 import '@tailwindplus/elements';
@@ -93,10 +159,13 @@ console.log('Tailwind Plus ready');
 
 ---
 
-## 4) Layout imports
+## 5) Layout imports
 
-Open **`Views/Shared/_Layout.cshtml`**. The template already references `site.css` and `site.js`.
-Make sure the JS is loaded as a module so the esbuild ESM bundle runs:
+Your layout already references `site.css` and `site.js`.
+Just ensure the **JS is loaded as a module** so the esbuild ESM bundle runs.
+
+**MVC:** `Views/Shared/_Layout.cshtml`
+**Razor Pages:** `Pages/Shared/_Layout.cshtml`
 
 ```html
 <!DOCTYPE html>
@@ -126,7 +195,7 @@ Make sure the JS is loaded as a module so the esbuild ESM bundle runs:
 
   @await RenderSectionAsync("Scripts", required: false)
 
-  <!-- JS bundle -->
+  <!-- JS bundle (ESM) -->
   <script type="module" src="~/js/site.js" asp-append-version="true"></script>
 </body>
 </html>
@@ -136,9 +205,11 @@ Make sure the JS is loaded as a module so the esbuild ESM bundle runs:
 
 ---
 
-## 5) Serve static files (Program.cs)
+## 6) Serve static files
 
-Enable static files to serve `wwwroot/**`:
+Add/verify `UseStaticFiles()` in **Program.cs** — this serves `wwwroot/**`.
+
+**MVC variant**
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
@@ -164,11 +235,35 @@ app.MapControllerRoute(
 app.Run();
 ```
 
-> If your template had `app.MapStaticAssets();`, keep `UseStaticFiles()` anyway — that’s what serves your own `wwwroot` content.
+**Razor Pages variant**
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddRazorPages();
+
+var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles(); // serves wwwroot/css, wwwroot/js, etc.
+
+app.UseRouting();
+
+app.MapRazorPages();
+
+app.Run();
+```
+
+> `app.MapStaticAssets()` (newer pipeline) is separate; keep `UseStaticFiles()` to serve your own `wwwroot`.
 
 ---
 
-## 6) Dev workflow
+## 7) Dev workflow
 
 Run watchers in parallel:
 
@@ -182,25 +277,11 @@ yarn dev:js        # esbuild (JS)
 
 ---
 
-## 7) Production build
-
-When you’re ready to deploy… just don’t do it on a Friday.
-
-```bash
-yarn build:css
-yarn build:js
-dotnet publish -c Release -o ./out
-```
-
-Your compiled CSS/JS will be in `./out/wwwroot`.
-
----
-
 ## 8) Hook frontend into publish (CI/CD)
 
 Make .NET run the frontend build during publish.
 
-**`MyProject.csproj`** — single backslashes (or forward slashes) are fine:
+**`MyProject.csproj`** (single backslashes are fine):
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -225,27 +306,17 @@ Make .NET run the frontend build during publish.
 
 ---
 
-## 9) .gitignore essentials
+## 9) Production build
 
-Keep the repo clean:
+When you’re ready to deploy… just don’t do it on a Friday.
 
+```bash
+yarn build:css
+yarn build:js
+dotnet publish -c Release -o ./out
 ```
-# .NET
-bin/
-obj/
 
-# Node
-node_modules/
-
-# Build outputs
-wwwroot/css/*
-wwwroot/js/*
-!wwwroot/css/.gitkeep
-!wwwroot/js/.gitkeep
-
-# logs
-*.log
-```
+Your compiled CSS/JS will be in `./out/wwwroot`.
 
 ---
 
@@ -262,5 +333,5 @@ Fix anything that fails before adding features.
 
 ## FAQ
 
-**Why not bundle everything with one tool?**
-Tailwind 4.1’s CLI is excellent at CSS and doesn’t need PostCSS/Webpack/etc. esbuild is a fast, tiny JS bundler. Let each do its job.
+**Why separate CSS & JS builds?**
+Tailwind 4.1’s CLI is great at CSS. esbuild is a fast JS bundler. Let each tool do its job.
